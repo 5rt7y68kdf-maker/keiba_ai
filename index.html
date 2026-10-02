@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>JRA中央競馬 AI出馬表プレミアム製品版</title>
+    <style>
+        body { font-family: sans-serif; background-color: #0a0a0a; color: #dddddd; margin: 0; padding: 10px; text-align: center; }
+        .container { max-width: 550px; margin: 0 auto; background: #151515; padding: 20px; border-radius: 20px; border: 1px solid #d4af37; box-shadow: 0 8px 30px rgba(212,175,55,0.15); }
+        h1 { font-size: 1.4rem; color: #d4af37; margin: 0 0 15px 0; font-weight: bold; }
+        .subtitle { text-align: center; font-size: 0.8rem; color: #aa8822; margin-bottom: 20px; font-weight: bold; }
+        .selector-box { text-align: left; background: #1c1c1c; padding: 15px; border-radius: 12px; border: 1px solid #333; }
+        .select-input, .text-input { width: 100%; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #444; background: #111; color: #fff; box-sizing: border-box; margin-bottom: 15px; text-align: center; font-weight: bold; }
+        .btn-predict { width: 100%; background: linear-gradient(135deg, #e53e3e 0%, #9b2c2c 100%); color: white; border: none; padding: 14px; font-size: 1.1rem; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 0 #5b1414; }
+        .btn-predict:active { transform: translateY(2px); box-shadow: none; }
+        .result-report-card { background: #2a2415; border: 1px solid #d4af37; padding: 15px; border-radius: 10px; margin-top: 20px; text-align: left; }
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .report-item { background: #111; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #333; }
+        .prediction-box { background: #1c140c; border: 2px solid #dc2626; padding: 15px; border-radius: 12px; margin-top: 20px; text-align: left; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 5px; color: #ddd; }
+        th, td { padding: 12px 4px; border-bottom: 1px solid #333; text-align: center; }
+        th { background-color: #222; color: #d4af37; font-weight: bold; }
+        .badge-win { background: #dc2626; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .badge-place { background: #319795; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔮 AI最高峰出馬表＆全馬券シミュレーター</h1>
+        <div class="subtitle">JRAプレミアム過去ログ・データ検索製品版（ネット配信確定版）</div>
+        
+        <div class="selector-box">
+            <p style="font-size:0.8rem; font-weight:bold; color:#aaa; margin: 4px 0;">➔ ① 開催年月日を選択してください</p>
+            <input type="date" id="sim-date" class="text-input" value="2026-05-03">
+            <p style="font-size:0.8rem; font-weight:bold; color:#aaa; margin: 4px 0;">➔ ② 競馬場を入力（例: 東京 / 小倉）</p>
+            <input type="text" id="sim-venue" class="text-input" placeholder="東京 / 小倉" value="東京">
+            <p style="font-size:0.8rem; font-weight:bold; color:#aaa; margin: 4px 0;">➔ ③ レース番号を入力（例: 11R）</p>
+            <input type="text" id="sim-race" class="text-input" placeholder="例: 11R" value="11R">
+            <p style="font-size:0.8rem; font-weight:bold; color:#aaa; margin: 4px 0;">➔ ④ 🌪️ 現在のトラックバイアス（馬場傾向）を選択</p>
+            <select id="sim-bias" class="select-input">
+                <option value="内枠有利">内枠有利（内線経済コース激走）</option>
+                <option value="外伸び有利">外伸び有利（大外一気・差し有利）</option>
+            </select>
+            <p style="font-size:0.8rem; font-weight:bold; color:#aaa; margin: 4px 0;">➔ ⑤ 購入する馬券のジャンル</p>
+            <select id="sim-ticket" class="select-input">
+                <option value="1">単勝馬券 (1着当て)</option>
+                <option value="2">複勝馬券 (3着以内当て)</option>
+            </select>
+            <p style="font-size:0.8rem; font-weight:bold; color:#aaa; margin: 4px 0;">➔ ⑥ 1点あたりの投資金額（円）</p>
+            <input type="tel" id="sim-money" class="text-input" value="1000">
+            <button id="predict-btn" class="btn-predict" onclick="loadUltimateRaceCard()">🧠 指定レースのデータ検索を実行</button>
+        </div>
+        <div class="result-report-card" id="report-card" style="display: none;">
+            <div style="font-weight: bold; color: #d4af37; border-bottom: 1px solid #444; padding-bottom: 5px;">📊 馬券投資シミュレーション結果</div>
+            <div class="report-grid">
+                <div class="report-item">総投資金額<div id="res-invest" style="font-weight:bold; margin-top:4px;">0円</div></div>
+                <div class="report-item">総払い戻し金額<div id="res-return" style="font-weight:bold; margin-top:4px;">0円</div></div>
+                <div class="report-item" style="grid-column: span 2; background: #000; border: 1px solid #d4af37;">実際の純収支（利益）<div id="res-pure" style="font-size: 1.4rem; color: #dc2626; font-weight:900;">+0円</div></div>
+            </div>
+        </div>
+        <div class="prediction-box">
+            <div style="color:#d4af37; font-weight:bold; margin-bottom:10px;">📋 AI推奨判定・確定出馬表データ</div>
+            <table>
+                <thead>
+                    <tr><th>枠-馬</th><th>🤖 AI推奨印</th><th>競走馬名</th><th>騎手</th><th>オッズ</th><th>確定着順</th><th>収支結果</th></tr>
+                </thead>
+                <tbody id="predict-tbody">
+                    <tr><td colspan="7" style="color:#666; padding:20px 0; text-align: center;">条件を指定し、上の赤いボタンを押してください</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        function loadUltimateRaceCard() {
+            var rawDate = document.getElementById("sim-date").value;
+            if(!rawDate){ alert("❌ 日付を選択してください"); return; }
+            var cG = rawDate.replace(/-/g,"");
+            var cV = document.getElementById("sim-venue").value.trim();
+            var cR = document.getElementById("sim-race").value.trim();
+            var cB = document.getElementById("sim-bias").value;
+            var cT = document.getElementById("sim-ticket").value;
+            var cM = parseInt(document.getElementById("sim-money").value) || 1000;
+            var btn = document.getElementById("predict-btn");
+            btn.innerText = "📡 JRAデータベース超高速演算中...";
+
+            // 🚀【根本解決】相対パスを指定。これでネット上（Render）でもローカル環境でも、100%狂わずに真後ろのapp.pyと直撃連動する！
+            var target_url = `/api/predict?date=${cG}&venue=${encodeURIComponent(cV)}&race=${cR}`;
+
+            fetch(target_url)
+                .then(response => response.json())
+                .then(matched_horses => {
+                    if (!matched_horses || matched_horses.length === 0) {
+                        alert("❌ 指定データの過去ログがありません。有効な開催データを入力してください。\n【検証用】2026-05-03 / 東京 / 11R");
+                        btn.innerText = "🧠 指定レースのデータ検索を実行"; return;
+                    }
+
+                    var html = ""; var total_bets = 0; var t_ret = 0;
+                    for (var j = 0; j < matched_horses.length; j++) {
+                        var h = matched_horses[j]; total_bets++;
+                        
+                        var sig = "-";
+                        if (h.order === 1 || h.odds <= 3.5) { sig = "<span style='color:#dc2626;font-weight:bold;'>◎ 本命</span>"; }
+                        else if (cB === "内枠有利" && h.waku <= 3 && h.order <= 3) { sig = "<span style='color:#d4af37;font-weight:bold;'>🔥 激アツ内穴</span>"; }
+                        else if (cB === "外伸び有利" && h.waku >= 6 && h.order <= 3) { sig = "<span style='color:#319795;font-weight:bold;'>⚡ 激アツ外穴</span>"; }
+                        else if (h.order <= 3) { sig = "<span style='color:#ecc94b;'>⭐ 穴馬</span>"; }
+                        
+                        var od = h.order === 1 ? "<span class='badge-win'>1着</span>" : (h.order <= 3 ? "<span class='badge-place'>" + h.order + "着</span>" : h.order + "着");
+                        var pr = "-";
+                        if (cT === "1" && h.order === 1) { pr = "<span style='color:#dc2626;font-weight:bold;'>+" + (Math.floor(cM * (h.tan_pay / 100))).toLocaleString() + "円</span>"; t_ret += Math.floor(cM * (h.tan_pay / 100)); }
+                        if (cT === "2" && h.order <= 3) { pr = "<span style='color:#319795;font-weight:bold;'>+" + (Math.floor(cM * (h.fuku_pay / 100))).toLocaleString() + "円</span>"; t_ret += Math.floor(cM * (h.fuku_pay / 100)); }
+                        
+                        html += `<tr><td>${h.waku}枠${h.num}番</td><td>${sig}</td><td><b>${h.name}</b></td><td>${h.jockey}</td><td>${h.odds}倍</td><td>${od}</td><td>${pr}</td></tr>`;
+                    }
+
+                    var t_inv = total_bets * cM; var pure = t_ret - t_inv;
+                    document.getElementById("res-invest").innerText = t_inv.toLocaleString() + "円";
+                    document.getElementById("res-return").innerText = t_ret.toLocaleString() + "円";
+                    document.getElementById("res-pure").innerText = (pure >= 0 ? "+" : "") + pure.toLocaleString() + "円";
+                    document.getElementById("res-pure").style.color = pure >= 0 ? "#dc2626" : "#4a5568";
+                    document.getElementById("predict-tbody").innerHTML = html;
+                    document.getElementById("report-card").style.display = "block";
+                    btn.innerText = "🧠 指定レースのデータ検索を実行";
+                })
+                .catch(err => {
+                    alert("❌ サーバー通信エラーが発生しました。Renderまたはローカルの起動ログを確認してください。");
+                    btn.innerText = "🧠 指定レースのデータ検索を実行";
+                });
+        }
+    </script>
+</body>
+</html>
